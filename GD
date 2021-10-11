@@ -35,7 +35,7 @@ def f(fileId , title):
 def write_bytesio_to_file(filename, bytesio):
     with open(filename, "wb") as outfile:        
         outfile.write(bytesio.getbuffer())
-    print('File Saved {}'.format(title))
+    print('File Saved {}'.format(filename))
 
 if __name__ == '__main__':
     creds = None
@@ -53,7 +53,8 @@ if __name__ == '__main__':
 
     service = build('drive', 'v3', credentials=creds)
     
-    folderID = '1SZ4a2j_rpHKTCSed8PSK7D5uopXUBvfF'
+    folderID = '1SZ4a2j_rpHKTCSed8PSK7D5uopXUBvfF' #Replace this with your own folder
+
     results = service.files().list(q = "'" + folderID + "' in parents", pageSize=10, fields="nextPageToken, files(id, name)").execute()
     items = results.get('files', [])
     threads = []
