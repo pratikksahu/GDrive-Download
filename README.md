@@ -1,7 +1,7 @@
 # GDrive-Download
 [Reference](https://developers.google.com/drive/api/v3/quickstart/python)
 
-* Run in Background
+* Run in background
 ```bash
 nohup python -u GD > output.log
 ```
