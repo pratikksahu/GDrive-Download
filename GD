@@ -7,13 +7,37 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.http import MediaIoBaseDownload
 from threading import Thread
 import io
-
+from time import sleep
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
-threads = []
 
-def f(fh , fileId):
+def f(fileId , title):    
+    print('Started {}'.format(title))
+    fh = io.BytesIO()
+    request = service.files().get_media(fileId=fileId)    
+    downloader = MediaIoBaseDownload(fh, request)
+    done = False    
+    retry = 0
+    while True:
+        try:
+            while done is False:
+                status, done = downloader.next_chunk()        
+                print("Download %d%%." % int(status.progress() * 100))
+            break
+        except:
+            retry = retry + 1
+            print('Retry {}__{}'.format(title , retry))      
+            fh.flush()
+            sleep(60)                                                
+    write_bytesio_to_file(title,fh)
+
+def write_bytesio_to_file(filename, bytesio):
+    with open(filename, "wb") as outfile:        
+        outfile.write(bytesio.getbuffer())
+    print('File Saved {}'.format(title))
+
+if __name__ == '__main__':
     creds = None
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)    
@@ -28,42 +52,19 @@ def f(fh , fileId):
             token.write(creds.to_json())
 
     service = build('drive', 'v3', credentials=creds)
-    request = service.files().get_media(fileId=fileId)
-    downloader = MediaIoBaseDownload(fh, request)
-    done = False
-    try:
-        while done is False:
-            status, done = downloader.next_chunk()        
-            print("Download %d%%." % int(status.progress() * 100))
-    except:
-        print('Retry {}'.format(fileId))        
-        fh.flush()             
-        f(fh,fileId)
-
-    write_bytesio_to_file(fileId+'.mp4',fh)
-
-def write_bytesio_to_file(filename, bytesio):
-    with open(filename, "wb") as outfile:        
-        outfile.write(bytesio.getbuffer())
-
-if __name__ == '__main__':
-    fileIds = ['1lncwt4zomjYfC0GY5t0GAIvTEDVNBqGd',
-     '1eDuP0CD7nqZRRntWlHh5TnW5d-uFSxDb',
-     '1y06KUUwZP8mdVCP7YpL0cgFhiIHPrOaW',
-     '1NUFQN6Hx1KNlfFQF2Q7Qj1J67uppsSGl',
-     '1MgY4EhoBgINyI0Fov5uDMJ7WIddPbFeJ',
-     '1lKfBVhkm4Qk3_IQglVh1e6X-DMCuz-ql',
-     '10z1cIfbsT1O7PNWt3PuC_pTXA1q6R97Y',
-     '1Dz2X1pAddCIgo06yi_VgXzxISJ0kKKQ_',
-     '1uRrWkLgUDc_fpvVtg3ozkHdC3c7utPAb']    
-
-    for n in fileIds:        
-        fh = io.BytesIO()
-        fileId = n
-        t = Thread(target=f , args=[fh , fileId ,])
-        t.start()
-        threads.append(t)
+    
+    folderID = '1SZ4a2j_rpHKTCSed8PSK7D5uopXUBvfF'
+    results = service.files().list(q = "'" + folderID + "' in parents", pageSize=10, fields="nextPageToken, files(id, name)").execute()
+    items = results.get('files', [])
+    threads = []
+                
+    for n in items:      
+        if(n['name'][-4:] != '.txt'):          
+            fileId = n                
+            t = Thread(target=f , args=[n['id'] ,n['name'],])
+            t.start()
+            threads.append(t)
         
     for t in threads:
-        t.join()
+        t.join()        
 
