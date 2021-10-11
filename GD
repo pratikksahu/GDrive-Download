@@ -8,9 +8,12 @@ from googleapiclient.http import MediaIoBaseDownload
 from threading import Thread
 import io
 from time import sleep
+import argparse
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
+sleepTime = 0
+folderID = ''
 
 def f(fileId , title):    
     print('Started {}'.format(title))
@@ -29,7 +32,7 @@ def f(fileId , title):
             retry = retry + 1
             print('Retry {}__{}'.format(title , retry))      
             fh.flush()
-            sleep(100) #Replace this with your own time (in seconds)                                               
+            sleep(sleepTime) #Replace this with your own time (in seconds)                                               
     write_bytesio_to_file(title,fh)
 
 def write_bytesio_to_file(filename, bytesio):
@@ -38,6 +41,24 @@ def write_bytesio_to_file(filename, bytesio):
     print('File Saved {}'.format(filename))
 
 if __name__ == '__main__':
+    ###Arguments parsing
+    parser = argparse.ArgumentParser(description='Optional app description')
+
+    # Required positional argument
+    parser.add_argument('--file',
+                        help='Folder Id' , required=True)
+
+    # Optional positional argument
+    parser.add_argument('-s', type=int, default=60,
+                        help='Download retry timer (in seconds)')
+
+    args = parser.parse_args()
+    folderID = args.file
+    if args.s < 20:
+        sleepTime = 20
+    else:
+        sleepTime = args.s
+    ###
     creds = None
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)    
@@ -51,9 +72,7 @@ if __name__ == '__main__':
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
 
-    service = build('drive', 'v3', credentials=creds)
-    
-    folderID = '1SZ4a2j_rpHKTCSed8PSK7D5uopXUBvfF' #Replace this with your own folder
+    service = build('drive', 'v3', credentials=creds)    
 
     results = service.files().list(q = "'" + folderID + "' in parents", pageSize=10, fields="nextPageToken, files(id, name)").execute()
     items = results.get('files', [])

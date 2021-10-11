@@ -3,7 +3,7 @@
 
 * Run in background
 ```bash
-nohup python -u GD > output.log
+nohup python -u GD -f [filename] -s [sleepTime][Optionale] > output.log
 ```
 * Change download folder
 ```python
